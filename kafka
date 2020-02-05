@@ -1,0 +1,45 @@
+Read Kafka queues on k8s
+
+kubectl get pods -n <namespace>
+
+kubectl --namespace <namespace> exec -it kafka-0 -- /bin/bash
+
+unset JMX_PORT
+cd /opt/kafka
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test.messages --group test1 --from-beginning
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --delete --group test1
+
+Read kafka from docker running on aws through the bastion
+0. ssh to bastion server
+  add id_rsa key is in /home/ec2-user/.ssh/ with permissions 600 on the file
+
+1.Run command to get the IP Address for Kafka docker container
+
+aws --region eu-west-1 ec2 describe-instances --filters "Name=tag:Environment,Values=xxx" --query "Reservations[].Instances[?Tags[?Key == 'Role' && contains(Value, 'kafka')][]][]" | jq '.[] | .NetworkInterfaces[] | .PrivateIpAddresses[] | .PrivateIpAddress' -r
+
+2. Jump from bastion to one of the kafka ip's
+
+ssh 127.0.0.1
+
+3. check the docker containers and get the container id for kafka
+sudo docker ps
+
+5. Enter bash shell of the kafka docker container
+sudo docker exec -it 888c1a87144d bash 
+
+6. prepare kafka for being read from
+
+unset JMX_PORT
+cd /opt/kafka
+
+7. Run command to read from message queue. 
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test.messages --group test1 --from-beginning
+
+8. delete consumer group when done. 
+bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --delete --group test1
+
+Tip:
+Can't get into the kafka docker
+sudo docker restart <container-id>
